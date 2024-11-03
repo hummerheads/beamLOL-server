@@ -15,6 +15,14 @@ app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use((req, res, next) => {
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self'; script-src 'self';"
+    );
+    next();
+  });
+
 // MongoDB connection URI
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ebsbi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 const client = new MongoClient(uri, {
@@ -33,18 +41,18 @@ async function run() {
     const allUsersCollection = client.db("BeamLOL").collection("Users");
 
     // Root route
-    app.get("/", (req, res) => {
+    app.get("/api", (req, res) => {
       res.send("Welcome to the BeamLOL API!");
     });
 
     // Get all users
-    app.get("/allusers", async (req, res) => {
+    app.get("/api/allusers", async (req, res) => {
       const result = await allUsersCollection.find().toArray();
       res.send(result);
     });
 
     // Add a new user
-    app.post("/allusers", async (req, res) => {
+    app.post("/api/allusers", async (req, res) => {
       try {
         const { telegram_ID } = req.body;
         const newUser = {
