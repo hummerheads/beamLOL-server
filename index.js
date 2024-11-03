@@ -27,7 +27,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    // await client.connect();
+    await client.connect();
     console.log("Connected to MongoDB!");
 
     const allUsersCollection = client.db("BeamLOL").collection("Users");
@@ -68,6 +68,7 @@ async function run() {
         res.status(500).send({ message: "Failed to add user" });
       }
     });
+
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
