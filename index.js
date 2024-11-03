@@ -18,10 +18,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
     res.setHeader(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self';"
+      "default-src 'self'; script-src 'self' 'unsafe-inline' https://vercel.live"
     );
     next();
   });
+  
 
 // MongoDB connection URI
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ebsbi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
