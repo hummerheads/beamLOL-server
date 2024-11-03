@@ -41,18 +41,18 @@ async function run() {
     const allUsersCollection = client.db("BeamLOL").collection("Users");
 
     // Root route
-    app.get("/api", (req, res) => {
+    app.get("/", (req, res) => {
       res.send("Welcome to the BeamLOL API!");
     });
 
     // Get all users
-    app.get("/api/allusers", async (req, res) => {
+    app.get("/allusers", async (req, res) => {
       const result = await allUsersCollection.find().toArray();
       res.send(result);
     });
 
     // Add a new user
-    app.post("/api/allusers", async (req, res) => {
+    app.post("/allusers", async (req, res) => {
       try {
         const { telegram_ID } = req.body;
         const newUser = {
