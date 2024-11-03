@@ -1,7 +1,7 @@
-const express = require('express');
+const express = require("express");
 const { MongoClient, ServerApiVersion } = require("mongodb");
-const bodyParser = require('body-parser');
-const dotenv = require('dotenv');
+const bodyParser = require("body-parser");
+const dotenv = require("dotenv");
 const cors = require("cors");
 
 dotenv.config();
@@ -26,53 +26,61 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
-    try {
-        await client.connect();
-        console.log("Connected to MongoDB!");
+  try {
+    await client.connect();
+    console.log("Connected to MongoDB!");
 
-        const allUsersCollection = client.db("BeamLOL").collection("Users");
-        
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    const allUsersCollection = client.db("BeamLOL").collection("Users");
 
-        // Root route
-        app.get("/", (req, res) => {
-            res.send("Welcome to the BeamLOL API!");
-        });
+    await client.db("admin").command({ ping: 1 });
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
 
-        // Get all users
-        app.get("/allusers", async (req, res) => {
-            const result = await allUsersCollection.find().toArray();
-            res.send(result);
-        });
+    // Root route
+    app.get("/", (req, res) => {
+      res.send("Welcome to the BeamLOL API!");
+    });
 
-        // Add a new user
-        app.post("/allusers", async (req, res) => {
-            try {
-                const { telegram_ID } = req.body;
-                const newUser = { telegram_ID, balance: 0, perk: 0, level: 0, bonus: 0, spin: 0 };
-                const query = { telegram_ID };
-                const existingUser = await allUsersCollection.findOne(query);
-                if (existingUser) {
-                    return res.send({ message: "User already exists", insertedId: null });
-                }
+    // Get all users
+    app.get("/allusers", async (req, res) => {
+      const result = await allUsersCollection.find().toArray();
+      res.send(result);
+    });
 
-                const result = await allUsersCollection.insertOne(newUser);
-                res.status(201).send(result);
-            } catch (error) {
-                console.error("Error inserting user:", error);
-                res.status(500).send({ message: "Failed to add user" });
-            }
-        });
+    // Add a new user
+    app.post("/allusers", async (req, res) => {
+      try {
+        const { telegram_ID } = req.body;
+        const newUser = {
+          telegram_ID,
+          balance: 0,
+          perk: 0,
+          level: 0,
+          bonus: 0,
+          spin: 0,
+        };
+        const query = { telegram_ID };
+        const existingUser = await allUsersCollection.findOne(query);
+        if (existingUser) {
+          return res.send({ message: "User already exists", insertedId: null });
+        }
 
-    } catch (error) {
-        console.error("Error connecting to MongoDB:", error);
-    }
+        const result = await allUsersCollection.insertOne(newUser);
+        res.status(201).send(result);
+      } catch (error) {
+        console.error("Error inserting user:", error);
+        res.status(500).send({ message: "Failed to add user" });
+      }
+    });
+  } catch (error) {
+    console.error("Error connecting to MongoDB:", error);
+  }
 }
 
 // Start the server
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 
 // Call the run function to connect to MongoDB
