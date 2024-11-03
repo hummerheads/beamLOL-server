@@ -1,8 +1,8 @@
 const express = require("express");
+const cors = require("cors");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
-const cors = require("cors");
 
 dotenv.config();
 const app = express();
@@ -27,15 +27,10 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     console.log("Connected to MongoDB!");
 
     const allUsersCollection = client.db("BeamLOL").collection("Users");
-
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
 
     // Root route
     app.get("/", (req, res) => {
