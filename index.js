@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const bodyParser = require("body-parser");
 
-dotenv.config();
+require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -36,7 +36,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        await client.connect();
+        
         console.log("Connected to MongoDB!");
 
         const allUsersCollection = client.db("BeamLOL").collection("Users");
