@@ -17,11 +17,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // Content Security Policy
 app.use((req, res, next) => {
-    res.setHeader(
-        "Content-Security-Policy",
-        "default-src 'self'; script-src 'self' 'unsafe-inline' https://vercel.live"
-    );
-    next();
+  res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self'; script-src 'self' 'unsafe-inline' https://vercel.live; object-src 'none';"
+  );
+  next();
 });
 
 // MongoDB connection URI
