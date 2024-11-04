@@ -1,10 +1,11 @@
 const express = require("express");
 const cors = require("cors");
+const dotenv = require("dotenv");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const bodyParser = require("body-parser");
-const dotenv = require("dotenv");
 
-dotenv.config();
+
+require("dotenv").config();
 const app = express();
 app.use(bodyParser.json());
 
@@ -36,7 +37,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     console.log("Connected to MongoDB!");
 
     const allUsersCollection = client.db("BeamLOL").collection("Users");
