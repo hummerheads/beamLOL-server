@@ -87,7 +87,8 @@ async function run() {
       try {
         const user = await allUsersCollection.findOne({ telegram_ID });
         if (user) {
-          res.send({ balance: user.balance, perk: user.perk, level: user.level, bonus: user.bonus, spin: user.spin, available_energy: user.available_energy, total_energy: user.total_energy });
+          res.send({ 
+            telegram_ID: telegram_ID, balance: user.balance, perk: user.perk, level: user.level, bonus: user.bonus, spin: user.spin, available_energy: user.available_energy, total_energy: user.total_energy });
         } else {
           res.status(404).send({ message: "User not found" });
         }
