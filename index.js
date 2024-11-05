@@ -63,6 +63,9 @@ async function run() {
           level: 0,
           bonus: 0,
           spin: 0,
+          available_energy: 0,
+          total_energy:0
+
         };
         const query = { telegram_ID };
         const existingUser = await allUsersCollection.findOne(query);
