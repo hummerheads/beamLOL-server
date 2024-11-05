@@ -99,8 +99,14 @@ async function run() {
     });
 
     // Update user's level and perks
+// Update user's level and perks
 app.post("/allusers/update/:telegram_ID", async (req, res) => {
-  const { level, perk, total_energy, telegram_ID } = req.body;
+  const { level, perk, total_energy } = req.body;
+  const { telegram_ID } = req.params; // Ensure the ID is being correctly extracted
+
+  console.log("Updating user with ID:", telegram_ID); // Log for debugging
+  console.log("Requested updates:", { level, perk, total_energy });
+
   try {
     const updatedDoc = {
       $set: {
@@ -109,7 +115,10 @@ app.post("/allusers/update/:telegram_ID", async (req, res) => {
         total_energy
       }
     };
+
     const result = await allUsersCollection.updateOne({ telegram_ID }, updatedDoc);
+    console.log("Update result:", result); // Log the result of the update
+
     if (result.modifiedCount === 1) {
       res.send({ message: "User updated successfully" });
     } else {
@@ -117,9 +126,10 @@ app.post("/allusers/update/:telegram_ID", async (req, res) => {
     }
   } catch (error) {
     console.error("Error updating user data:", error);
-    res.status(500).send({ message: "Failed to update user" });
+    res.status(500).send({ message: "Failed to update user", error: error.message });
   }
 });
+
 
 
 
