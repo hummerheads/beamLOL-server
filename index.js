@@ -60,7 +60,7 @@ async function run() {
           telegram_ID,
           balance: 0,
           perk: 0,
-          level: 0,
+          level: 1,
           bonus: 0,
           spin: 0,
           available_energy: 0,
@@ -96,6 +96,42 @@ async function run() {
         res.status(500).send({ message: "Failed to retrieve balance" });
       }
     });
+
+    // Update user's level and perks
+app.post("/allusers/:telegram_ID/update", async (req, res) => {
+  const { level, perk, total_energy, telegram_ID } = req.body;
+  try {
+    const updatedDoc = {
+      $set: {
+        level,
+        perk,
+        total_energy
+      }
+    };
+    const result = await allUsersCollection.updateOne({ telegram_ID }, updatedDoc);
+    if (result.modifiedCount === 1) {
+      res.send({ message: "User updated successfully" });
+    } else {
+      throw new Error("User not found or data unchanged");
+    }
+  } catch (error) {
+    console.error("Error updating user data:", error);
+    res.status(500).send({ message: "Failed to update user" });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
