@@ -99,7 +99,7 @@ async function run() {
     });
 
     // Update user's level and perks
-app.post("/allusers/:telegram_ID/update", async (req, res) => {
+app.post("/allusers/update/:telegram_ID", async (req, res) => {
   const { level, perk, total_energy, telegram_ID } = req.body;
   try {
     const updatedDoc = {
