@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
-app.use(express.json()); 
+app.use(express.json());
 // app.use(cors({ origin: "https://astounding-licorice-1ef290.netlify.app" })); // Allow only specific origin
 // app.use(bodyParser.json());
 // app.use(express.json());
@@ -75,6 +75,22 @@ async function run() {
       } catch (error) {
         console.error("Error inserting user:", error);
         res.status(500).send({ message: "Failed to add user" });
+      }
+    });
+
+    // Get user balance by Telegram ID
+    app.get("/allusers/:telegram_ID", async (req, res) => {
+      const { telegram_ID } = req.params;
+      try {
+        const user = await allUsersCollection.findOne({ telegram_ID });
+        if (user) {
+          res.send({ balance: user.balance });
+        } else {
+          res.status(404).send({ message: "User not found" });
+        }
+      } catch (error) {
+        console.error("Error fetching balance:", error);
+        res.status(500).send({ message: "Failed to retrieve balance" });
       }
     });
   } catch (error) {
