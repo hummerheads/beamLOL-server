@@ -62,6 +62,8 @@ async function run() {
         spin: 0,
         available_energy: 0,
         total_energy: 0,
+        check_In: 0,
+        premium: "no"
       };
 
       const result = await allUsersCollection.insertOne(newUser);
@@ -118,22 +120,29 @@ async function run() {
       }
     });
 
-    app.post("/checkin", async (req, res) => {
-      const { telegram_ID } = req.body;
-      try {
-        const query = { telegram_ID };
-        const update = { $inc: { balance: 0.2 } };
-        const result = await allUsersCollection.updateOne(query, update);
-        if (result.modifiedCount > 0) {
-          res.send({ message: "Check-in successful!" });
-        } else {
-          res.status(404).send({ message: "User not found" });
-        }
-      } catch (error) {
-        console.error("Error during check-in:", error);
-        res.status(500).send({ message: "Failed to complete check-in" });
+  // Check-in route to update user's balance and spins after payment
+  app.post("/checkin", async (req, res) => {
+    const { telegram_ID } = req.body;
+    try {
+      const query = { telegram_ID };
+      const update = {
+        $inc: { balance: 100000, spin: 100 }, // Increment balance and spins
+      };
+      const result = await allUsersCollection.updateOne(query, update);
+      if (result.modifiedCount > 0) {
+        res.send({ message: "Check-in successful! Balance and spins updated." });
+      } else {
+        res.status(404).send({ message: "User not found" });
       }
-    });
+    } catch (error) {
+      console.error("Error during check-in:", error);
+      res.status(500).send({ message: "Failed to complete check-in" });
+    }
+  });
+
+
+
+
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
