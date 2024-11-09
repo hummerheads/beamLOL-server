@@ -1,8 +1,8 @@
+// Backend: Express.js Server (server.js)
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { MongoClient, ServerApiVersion } = require("mongodb");
-const bodyParser = require("body-parser");
 
 require("dotenv").config();
 const app = express();
@@ -11,19 +11,6 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-// app.use(cors({ origin: "https://astounding-licorice-1ef290.netlify.app" })); // Allow only specific origin
-// app.use(bodyParser.json());
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
-
-// Content Security Policy
-// app.use((req, res, next) => {
-//   res.setHeader(
-//     "Content-Security-Policy",
-//     "default-src 'self'; script-src 'self' 'unsafe-inline' https://vercel.live; object-src 'none';"
-//   );
-//   next();
-// });
 
 // MongoDB connection URI
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ebsbi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -55,17 +42,17 @@ async function run() {
     // Add a new user
     app.post("/allusers", async (req, res) => {
       try {
-        const { telegram_ID } = req.body;
+        const { telegram_ID, ton_address } = req.body;
         const newUser = {
           telegram_ID,
+          ton_address,
           balance: 0,
           perk: 0,
           level: 1,
           bonus: 0,
           spin: 0,
           available_energy: 0,
-          total_energy:0
-
+          total_energy: 0,
         };
         const query = { telegram_ID };
         const existingUser = await allUsersCollection.findOne(query);
@@ -87,62 +74,64 @@ async function run() {
       try {
         const user = await allUsersCollection.findOne({ telegram_ID });
         if (user) {
-          res.send({ 
-            telegram_ID: telegram_ID, balance: user.balance, perk: user.perk, level: user.level, bonus: user.bonus, spin: user.spin, available_energy: user.available_energy, total_energy: user.total_energy });
+          res.send(user);
         } else {
           res.status(404).send({ message: "User not found" });
         }
       } catch (error) {
-        console.error("Error fetching balance:", error);
-        res.status(500).send({ message: "Failed to retrieve balance" });
+        console.error("Error fetching user:", error);
+        res.status(500).send({ message: "Failed to retrieve user" });
       }
     });
 
     // Update user's level and perks
-// Update user's level and perks
-app.post("/allusers/update/:telegram_ID", async (req, res) => {
-  const { level, perk, total_energy } = req.body;
-  const { telegram_ID } = req.params; // Ensure the ID is being correctly extracted
+    app.post("/allusers/update/:telegram_ID", async (req, res) => {
+      const { level, perk, total_energy } = req.body;
+      const { telegram_ID } = req.params;
 
-  console.log("Updating user with ID:", telegram_ID); // Log for debugging
-  console.log("Requested updates:", { level, perk, total_energy });
+      try {
+        const updatedDoc = {
+          $set: {
+            level,
+            perk,
+            total_energy,
+          },
+        };
 
-  try {
-    const updatedDoc = {
-      $set: {
-        level,
-        perk,
-        total_energy
+        const result = await allUsersCollection.updateOne(
+          { telegram_ID },
+          updatedDoc
+        );
+
+        if (result.modifiedCount === 1) {
+          res.send({ message: "User updated successfully" });
+        } else {
+          throw new Error("User not found or data unchanged");
+        }
+      } catch (error) {
+        console.error("Error updating user data:", error);
+        res
+          .status(500)
+          .send({ message: "Failed to update user", error: error.message });
       }
-    };
+    });
 
-    const result = await allUsersCollection.updateOne({ telegram_ID }, updatedDoc);
-    console.log("Update result:", result); // Log the result of the update
-
-    if (result.modifiedCount === 1) {
-      res.send({ message: "User updated successfully" });
-    } else {
-      throw new Error("User not found or data unchanged");
-    }
-  } catch (error) {
-    console.error("Error updating user data:", error);
-    res.status(500).send({ message: "Failed to update user", error: error.message });
-  }
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    app.post("/checkin", async (req, res) => {
+      const { telegram_ID } = req.body;
+      try {
+        const query = { telegram_ID };
+        const update = { $inc: { balance: 0.2 } };
+        const result = await allUsersCollection.updateOne(query, update);
+        if (result.modifiedCount > 0) {
+          res.send({ message: "Check-in successful!" });
+        } else {
+          res.status(404).send({ message: "User not found" });
+        }
+      } catch (error) {
+        console.error("Error during check-in:", error);
+        res.status(500).send({ message: "Failed to complete check-in" });
+      }
+    });
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
