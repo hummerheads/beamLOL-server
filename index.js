@@ -1,19 +1,19 @@
-// Backend: Express.js Server (server.js)
+// Required dependencies
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
-require("dotenv").config();
+dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Middleware setup
 app.use(cors());
 app.use(express.json());
 
-// MongoDB connection URI
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ebsbi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+// MongoDB connection URI and client
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -22,10 +22,13 @@ const client = new MongoClient(uri, {
   },
 });
 
+// Database connection function
 async function run() {
   try {
+    await client.connect();
     console.log("Connected to MongoDB!");
 
+    // MongoDB collection for users
     const allUsersCollection = client.db("BeamLOL").collection("Users");
 
     // Root route
@@ -33,16 +36,30 @@ async function run() {
       res.send("Welcome to the BeamLOL API!");
     });
 
-    // Get all users
+    // Route to get all users
     app.get("/allusers", async (req, res) => {
-      const result = await allUsersCollection.find().toArray();
-      res.send(result);
+      try {
+        const result = await allUsersCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching all users:", error);
+        res.status(500).send({ message: "Failed to retrieve users" });
+      }
     });
 
-    // Add a new user
+    // Route to add or update a user based on wallet address
     app.post("/allusers", async (req, res) => {
       try {
         const { telegram_ID, ton_address } = req.body;
+        const query = { telegram_ID, ton_address };
+
+        // Check if the address already exists
+        const existingUser = await allUsersCollection.findOne(query);
+        if (existingUser) {
+          return res.send({ message: "User already exists", insertedId: null });
+        }
+
+        // Insert the new user if it doesn't exist
         const newUser = {
           telegram_ID,
           ton_address,
@@ -54,11 +71,6 @@ async function run() {
           available_energy: 0,
           total_energy: 0,
         };
-        const query = { telegram_ID };
-        const existingUser = await allUsersCollection.findOne(query);
-        if (existingUser) {
-          return res.send({ message: "User already exists", insertedId: null });
-        }
 
         const result = await allUsersCollection.insertOne(newUser);
         res.status(201).send(result);
@@ -68,7 +80,7 @@ async function run() {
       }
     });
 
-    // Get user balance by Telegram ID
+    // Route to get a user by Telegram ID
     app.get("/allusers/:telegram_ID", async (req, res) => {
       const { telegram_ID } = req.params;
       try {
@@ -79,12 +91,12 @@ async function run() {
           res.status(404).send({ message: "User not found" });
         }
       } catch (error) {
-        console.error("Error fetching user:", error);
+        console.error("Error fetching user by telegram_ID:", error);
         res.status(500).send({ message: "Failed to retrieve user" });
       }
     });
 
-    // Update user's level and perks
+    // Route to update user's level and perks
     app.post("/allusers/update/:telegram_ID", async (req, res) => {
       const { level, perk, total_energy } = req.body;
       const { telegram_ID } = req.params;
@@ -110,12 +122,11 @@ async function run() {
         }
       } catch (error) {
         console.error("Error updating user data:", error);
-        res
-          .status(500)
-          .send({ message: "Failed to update user", error: error.message });
+        res.status(500).send({ message: "Failed to update user", error: error.message });
       }
     });
 
+    // Route for user check-in to increment balance
     app.post("/checkin", async (req, res) => {
       const { telegram_ID } = req.body;
       try {
@@ -137,10 +148,10 @@ async function run() {
   }
 }
 
-// Start the server
+// Start the Express server and connect to the database
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// Call the run function to connect to MongoDB
+// Call the run function to initiate MongoDB connection
 run().catch(console.dir);
