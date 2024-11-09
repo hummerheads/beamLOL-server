@@ -88,7 +88,7 @@ async function run() {
     }
   });
 
-    // Update user's level and perks
+    // Route to update user's level and perks
     app.post("/allusers/update/:telegram_ID", async (req, res) => {
       const { level, perk, total_energy } = req.body;
       const { telegram_ID } = req.params;
@@ -114,9 +114,7 @@ async function run() {
         }
       } catch (error) {
         console.error("Error updating user data:", error);
-        res
-          .status(500)
-          .send({ message: "Failed to update user", error: error.message });
+        res.status(500).send({ message: "Failed to update user", error: error.message });
       }
     });
 
