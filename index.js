@@ -57,7 +57,7 @@ async function run() {
     });
 
     // Unified PATCH route for user updates
-    app.patch("/users/:telegram_ID", async (req, res) => {
+    app.patch("/allusers/:telegram_ID", async (req, res) => {
       const { telegram_ID } = req.params;
       const {
         ton_address,
