@@ -206,32 +206,9 @@ async function run() {
       }
     });
 
-    app.post("/checkin", async (req, res) => {
-      const { telegram_ID } = req.body;
 
-      try {
-        const query = { telegram_ID };
-        const currentTime = new Date().getTime();
 
-        const update = {
-          $inc: { balance: 100000, spin: 100, check_In: 1 },
-          $set: { lastCheckIn: currentTime },
-        };
 
-        const result = await allUsersCollection.updateOne(query, update);
-
-        if (result.modifiedCount > 0) {
-          res.send({ message: "Check-in successful! Balance and spins updated." });
-        } else {
-          res.status(404).send({ message: "User not found" });
-        }
-      } catch (error) {
-        console.error("Error during check-in:", error);
-        res.status(500).send({ message: "Failed to complete check-in" });
-      }
-    });
-
-    
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
