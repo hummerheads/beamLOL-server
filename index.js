@@ -48,15 +48,15 @@ async function run() {
 
 
     app.post("/allusers", async (req, res) => {
-      console.log("Received request at /allusers:", req.body); // Log request body
+      console.log("Received request at /allusers:", req.body);
 
       try {
-        const { telegram_ID, ton_address } = req.body;
-    
-        if (!telegram_ID || !ton_address) {
-          return res.status(400).send({ message: "Missing telegram_ID or ton_address" });
+        const { telegram_ID, ton_address = "" } = req.body; // Default to an empty string if ton_address is not provided
+
+        if (!telegram_ID) {
+          return res.status(400).send({ message: "Missing telegram_ID" });
         }
-    
+
         // Check if the user already exists
         const existingUser = await allUsersCollection.findOne({ telegram_ID });
         if (existingUser) {
@@ -68,14 +68,14 @@ async function run() {
             );
             return res.send({ message: "Wallet address updated successfully", updateResult });
           }
-    
+
           return res.send({ message: "User already exists with the same address" });
         }
-    
+
         // Insert the new user if it doesn't exist
         const newUser = {
           telegram_ID,
-          ton_address: "",
+          ton_address,
           balance: 0,
           perk: 0,
           level: 1,
@@ -89,7 +89,7 @@ async function run() {
           check_In: 0,
           premium: "no",
         };
-    
+
         const result = await allUsersCollection.insertOne(newUser);
         res.status(201).send(result);
       } catch (error) {
