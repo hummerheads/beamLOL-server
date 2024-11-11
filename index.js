@@ -163,21 +163,7 @@ async function run() {
       }
     });
 
-    app.get('/api/save-wallet', async(req, res) => {
-      const result = await allWalletCollection.find().toArray();
-      res.send(result);
-    });
 
-    app.post('/api/save-wallet', (req, res) => {
-      const { telegram_ID, ton_address } = req.body;
-      if (!telegram_ID || !ton_address) {
-        return res.status(400).json({ error: 'Missing data' });
-      }
-    
-      // Save to your database (e.g., MongoDB, PostgreSQL)
-      console.log(`Saving wallet: Telegram ID ${telegram_ID}, Address ${ton_address}`);
-      res.status(200).json({ message: 'Wallet saved successfully' });
-    });
 
     // Get a transaction
     app.get("/transactions/:telegram_ID", async (req, res) => {
