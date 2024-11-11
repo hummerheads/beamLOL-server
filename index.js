@@ -27,11 +27,8 @@ async function run() {
     console.log("Connected to MongoDB!");
 
     const allUsersCollection = client.db("BeamLOL").collection("Users");
-    const transactionsCollection = client
-      .db("BeamLOL")
-      .collection("Transactions");
-      
-      const allWalletCollection = client.db("BeamLOL").collection("Wallet");
+    const transactionsCollection = client.db("BeamLOL").collection("Transactions");
+    const allWalletCollection = client.db("BeamLOL").collection("Wallet");
 
     // Root route
     app.get("/", (req, res) => {
@@ -70,14 +67,17 @@ async function run() {
         // Insert the new user if it doesn't exist
         const newUser = {
           telegram_ID,
-          ton_address,
+          ton_address: "",
           balance: 0,
           perk: 0,
           level: 1,
           bonus: 0,
           spin: 0,
           available_energy: 0,
-          total_energy: 0,
+          spent_telegramStars: 0,
+          spent_Ton: 0,
+          spent_pi: 0,
+          total_energy: 100,
           check_In: 0,
           premium: "no",
         };
@@ -167,6 +167,7 @@ async function run() {
       const result = await allWalletCollection.find().toArray();
       res.send(result);
     });
+
     app.post('/api/save-wallet', (req, res) => {
       const { telegram_ID, ton_address } = req.body;
       if (!telegram_ID || !ton_address) {
