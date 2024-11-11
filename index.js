@@ -41,7 +41,15 @@ async function run() {
       res.send(result);
     });
 
+
+    
+
+
+
+
     app.post("/allusers", async (req, res) => {
+      console.log("Received request at /allusers:", req.body); // Log request body
+
       try {
         const { telegram_ID, ton_address } = req.body;
     
