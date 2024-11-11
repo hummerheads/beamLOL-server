@@ -27,7 +27,9 @@ async function run() {
     console.log("Connected to MongoDB!");
 
     const allUsersCollection = client.db("BeamLOL").collection("Users");
-    const transactionsCollection = client.db("BeamLOL").collection("Transactions");
+    const transactionsCollection = client
+      .db("BeamLOL")
+      .collection("Transactions");
     const allWalletCollection = client.db("BeamLOL").collection("Wallet");
 
     // Root route
@@ -40,12 +42,6 @@ async function run() {
       const result = await allUsersCollection.find().toArray();
       res.send(result);
     });
-
-
-    
-
-
-
 
     app.post("/allusers", async (req, res) => {
       console.log("Received request at /allusers:", req.body);
@@ -61,15 +57,23 @@ async function run() {
         const existingUser = await allUsersCollection.findOne({ telegram_ID });
         if (existingUser) {
           // Update the user's TON address if it's null or different
-          if (!existingUser.ton_address || existingUser.ton_address !== ton_address) {
+          if (
+            !existingUser.ton_address ||
+            existingUser.ton_address !== ton_address
+          ) {
             const updateResult = await allUsersCollection.updateOne(
               { telegram_ID },
               { $set: { ton_address } }
             );
-            return res.send({ message: "Wallet address updated successfully", updateResult });
+            return res.send({
+              message: "Wallet address updated successfully",
+              updateResult,
+            });
           }
 
-          return res.send({ message: "User already exists with the same address" });
+          return res.send({
+            message: "User already exists with the same address",
+          });
         }
 
         // Insert the new user if it doesn't exist
@@ -97,9 +101,6 @@ async function run() {
         res.status(500).send({ message: "Failed to add user" });
       }
     });
-    
-    
-
 
     // Route to get a user by Telegram ID
     app.get("/allusers/:telegram_ID", async (req, res) => {
@@ -171,8 +172,6 @@ async function run() {
       }
     });
 
-
-
     // Get a transaction
     app.get("/transactions/:telegram_ID", async (req, res) => {
       try {
@@ -206,6 +205,33 @@ async function run() {
         res.status(500).json({ message: error.message });
       }
     });
+
+    app.post("/checkin", async (req, res) => {
+      const { telegram_ID } = req.body;
+
+      try {
+        const query = { telegram_ID };
+        const currentTime = new Date().getTime();
+
+        const update = {
+          $inc: { balance: 100000, spin: 100, check_In: 1 },
+          $set: { lastCheckIn: currentTime },
+        };
+
+        const result = await allUsersCollection.updateOne(query, update);
+
+        if (result.modifiedCount > 0) {
+          res.send({ message: "Check-in successful! Balance and spins updated." });
+        } else {
+          res.status(404).send({ message: "User not found" });
+        }
+      } catch (error) {
+        console.error("Error during check-in:", error);
+        res.status(500).send({ message: "Failed to complete check-in" });
+      }
+    });
+
+    
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
