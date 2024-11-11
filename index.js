@@ -55,11 +55,11 @@ async function run() {
         if (existingUser) {
           // Update the user's TON address if it's null or different
           if (!existingUser.ton_address || existingUser.ton_address !== ton_address) {
-            await allUsersCollection.updateOne(
+            const updateResult = await allUsersCollection.updateOne(
               { telegram_ID },
               { $set: { ton_address } }
             );
-            return res.send({ message: "Wallet address updated successfully" });
+            return res.send({ message: "Wallet address updated successfully", updateResult });
           }
     
           return res.send({ message: "User already exists with the same address" });
@@ -87,6 +87,7 @@ async function run() {
         res.status(500).send({ message: "Failed to add user" });
       }
     });
+    
     
 
 
