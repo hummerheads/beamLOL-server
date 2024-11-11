@@ -42,52 +42,52 @@ async function run() {
       res.send(result);
     });
 
-// Route to add or update a user based on wallet address
-app.post("/allusers", async (req, res) => {
-  try {
-    const { telegram_ID, ton_address } = req.body;
-
-    if (!telegram_ID || !ton_address) {
-      return res.status(400).send({ message: "Missing telegram_ID or ton_address" });
-    }
-
-    // Check if the user already exists
-    const existingUser = await allUsersCollection.findOne({ telegram_ID });
-    if (existingUser) {
-      // Update the user's TON address if it has changed
-      if (existingUser.ton_address !== ton_address) {
-        await allUsersCollection.updateOne(
-          { telegram_ID },
-          { $set: { ton_address } }
-        );
-        return res.send({ message: "Wallet address updated successfully" });
+    app.post("/allusers", async (req, res) => {
+      try {
+        const { telegram_ID, ton_address } = req.body;
+    
+        if (!telegram_ID || !ton_address) {
+          return res.status(400).send({ message: "Missing telegram_ID or ton_address" });
+        }
+    
+        // Check if the user already exists
+        const existingUser = await allUsersCollection.findOne({ telegram_ID });
+        if (existingUser) {
+          // Update the user's TON address if it's null or different
+          if (!existingUser.ton_address || existingUser.ton_address !== ton_address) {
+            await allUsersCollection.updateOne(
+              { telegram_ID },
+              { $set: { ton_address } }
+            );
+            return res.send({ message: "Wallet address updated successfully" });
+          }
+    
+          return res.send({ message: "User already exists with the same address" });
+        }
+    
+        // Insert the new user if it doesn't exist
+        const newUser = {
+          telegram_ID,
+          ton_address,
+          balance: 0,
+          perk: 0,
+          level: 1,
+          bonus: 0,
+          spin: 0,
+          available_energy: 0,
+          total_energy: 0,
+          check_In: 0,
+          premium: "no",
+        };
+    
+        const result = await allUsersCollection.insertOne(newUser);
+        res.status(201).send(result);
+      } catch (error) {
+        console.error("Error inserting user:", error);
+        res.status(500).send({ message: "Failed to add user" });
       }
-
-      return res.send({ message: "User already exists with the same address" });
-    }
-
-    // Insert the new user if it doesn't exist
-    const newUser = {
-      telegram_ID,
-      ton_address,
-      balance: 0,
-      perk: 0,
-      level: 1,
-      bonus: 0,
-      spin: 0,
-      available_energy: 0,
-      total_energy: 0,
-      check_In: 0,
-      premium: "no",
-    };
-
-    const result = await allUsersCollection.insertOne(newUser);
-    res.status(201).send(result);
-  } catch (error) {
-    console.error("Error inserting user:", error);
-    res.status(500).send({ message: "Failed to add user" });
-  }
-});
+    });
+    
 
 
     // Route to get a user by Telegram ID
