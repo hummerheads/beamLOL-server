@@ -27,10 +27,7 @@ async function run() {
     console.log("Connected to MongoDB!");
 
     const allUsersCollection = client.db("BeamLOL").collection("Users");
-    const transactionsCollection = client
-      .db("BeamLOL")
-      .collection("Transactions");
-    const allWalletCollection = client.db("BeamLOL").collection("Wallet");
+    const transactionsCollection = client.db("BeamLOL").collection("Transactions");
 
     // Root route
     app.get("/", (req, res) => {
@@ -43,66 +40,7 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/allusers", async (req, res) => {
-      console.log("Received request at /allusers:", req.body);
-
-      try {
-        const { telegram_ID, ton_address = "" } = req.body; // Default to an empty string if ton_address is not provided
-
-        if (!telegram_ID) {
-          return res.status(400).send({ message: "Missing telegram_ID" });
-        }
-
-        // Check if the user already exists
-        const existingUser = await allUsersCollection.findOne({ telegram_ID });
-        if (existingUser) {
-          // Update the user's TON address if it's null or different
-          if (
-            !existingUser.ton_address ||
-            existingUser.ton_address !== ton_address
-          ) {
-            const updateResult = await allUsersCollection.updateOne(
-              { telegram_ID },
-              { $set: { ton_address } }
-            );
-            return res.send({
-              message: "Wallet address updated successfully",
-              updateResult,
-            });
-          }
-
-          return res.send({
-            message: "User already exists with the same address",
-          });
-        }
-
-        // Insert the new user if it doesn't exist
-        const newUser = {
-          telegram_ID,
-          ton_address,
-          balance: 0,
-          perk: 0,
-          level: 1,
-          bonus: 0,
-          spin: 0,
-          available_energy: 0,
-          spent_telegramStars: 0,
-          spent_Ton: 0,
-          spent_pi: 0,
-          total_energy: 100,
-          check_In: 0,
-          premium: "no",
-        };
-
-        const result = await allUsersCollection.insertOne(newUser);
-        res.status(201).send(result);
-      } catch (error) {
-        console.error("Error inserting user:", error);
-        res.status(500).send({ message: "Failed to add user" });
-      }
-    });
-
-    // Route to get a user by Telegram ID
+    // Get a user by Telegram ID
     app.get("/allusers/:telegram_ID", async (req, res) => {
       const { telegram_ID } = req.params;
       try {
@@ -118,74 +56,60 @@ async function run() {
       }
     });
 
-    // Route to update user's level and perks
-    app.post("/allusers/update/:telegram_ID", async (req, res) => {
-      const { level, perk, total_energy } = req.body;
+    // Unified PATCH route for user updates
+    app.patch("/users/:telegram_ID", async (req, res) => {
       const { telegram_ID } = req.params;
+      const {
+        ton_address,
+        balanceIncrement,
+        spinIncrement,
+        checkInIncrement,
+        level,
+        perk,
+        total_energy,
+        isCheckIn,
+      } = req.body;
 
       try {
-        const updatedDoc = {
-          $set: {
-            level,
-            perk,
-            total_energy,
-          },
-        };
+        const query = { telegram_ID };
+        const updateFields = {};
 
-        const result = await allUsersCollection.updateOne(
-          { telegram_ID },
-          updatedDoc
-        );
+        // Update TON address if provided
+        if (ton_address) {
+          updateFields.ton_address = ton_address;
+        }
 
-        if (result.modifiedCount === 1) {
-          res.send({ message: "User updated successfully" });
+        // Increment balance, spins, and check-in if provided
+        if (balanceIncrement || spinIncrement || checkInIncrement) {
+          updateFields.$inc = {};
+          if (balanceIncrement) updateFields.$inc.balance = balanceIncrement;
+          if (spinIncrement) updateFields.$inc.spin = spinIncrement;
+          if (checkInIncrement) updateFields.$inc.check_In = checkInIncrement;
+        }
+
+        // Update level, perk, and total energy if provided
+        if (level || perk || total_energy) {
+          updateFields.$set = {};
+          if (level) updateFields.$set.level = level;
+          if (perk) updateFields.$set.perk = perk;
+          if (total_energy) updateFields.$set.total_energy = total_energy;
+        }
+
+        // Update last check-in timestamp if check-in is performed
+        if (isCheckIn) {
+          updateFields.$set = { ...updateFields.$set, lastCheckIn: new Date().getTime() };
+        }
+
+        const result = await allUsersCollection.updateOne(query, updateFields);
+
+        if (result.modifiedCount > 0) {
+          res.send({ message: "User data updated successfully." });
         } else {
-          throw new Error("User not found or data unchanged");
+          res.status(404).send({ message: "User not found or no changes made." });
         }
       } catch (error) {
         console.error("Error updating user data:", error);
-        res
-          .status(500)
-          .send({ message: "Failed to update user", error: error.message });
-      }
-    });
-
-    // Check-in route to update user's balance and spins after payment
-    app.post("/checkin", async (req, res) => {
-      const { telegram_ID } = req.body;
-      try {
-        const query = { telegram_ID };
-        const update = {
-          $inc: { balance: 100000, spin: 100 }, // Increment balance and spins
-        };
-        const result = await allUsersCollection.updateOne(query, update);
-        if (result.modifiedCount > 0) {
-          res.send({
-            message: "Check-in successful! Balance and spins updated.",
-          });
-        } else {
-          res.status(404).send({ message: "User not found" });
-        }
-      } catch (error) {
-        console.error("Error during check-in:", error);
-        res.status(500).send({ message: "Failed to complete check-in" });
-      }
-    });
-
-    // Get a transaction
-    app.get("/transactions/:telegram_ID", async (req, res) => {
-      try {
-        const { telegram_ID } = req.params;
-        const transaction = await transactionsCollection.findOne({
-          telegram_ID,
-        });
-        if (transaction) {
-          res.status(200).json(transaction);
-        } else {
-          res.status(404).json({ message: "Transaction not found" });
-        }
-      } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).send({ message: "Failed to update user", error: error.message });
       }
     });
 
@@ -205,10 +129,6 @@ async function run() {
         res.status(500).json({ message: error.message });
       }
     });
-
-
-
-
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
