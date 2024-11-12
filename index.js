@@ -1,4 +1,3 @@
-// Backend: Express.js Server with Socket.IO (server.js)
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -26,7 +25,7 @@ const client = new MongoClient(uri, {
 
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
-  
+
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
   });
@@ -34,6 +33,7 @@ io.on("connection", (socket) => {
 
 async function run() {
   try {
+    await client.connect();
     console.log("Connected to MongoDB!");
     const allUsersCollection = client.db("BeamLOL").collection("Users");
 
@@ -46,6 +46,17 @@ async function run() {
     app.get("/allusers", async (req, res) => {
       const result = await allUsersCollection.find().toArray();
       res.send(result);
+    });
+
+    // Get user by telegram_ID
+    app.get("/allusers/:telegram_ID", async (req, res) => {
+      const { telegram_ID } = req.params;
+      const user = await allUsersCollection.findOne({ telegram_ID });
+      if (user) {
+        res.send(user);
+      } else {
+        res.status(404).send({ message: "User not found." });
+      }
     });
 
     // Add new user
@@ -80,34 +91,56 @@ async function run() {
         res.status(201).json(result);
       } catch (error) {
         console.error("Error adding new user:", error);
-        res.status(500).json({ message: "Failed to add user", error: error.message });
+        res
+          .status(500)
+          .json({ message: "Failed to add user", error: error.message });
       }
     });
 
     // Update user with tap action
     app.patch("/allusers/:telegram_ID", async (req, res) => {
       const { telegram_ID } = req.params;
-      const { balanceIncrement, available_energy_decrement } = req.body;
+      const {
+        balanceIncrement = 0,
+        available_energy_decrement = 0,
+        spinIncrement = 0,
+        checkInIncrement = 0,
+        isCheckIn = false,
+      } = req.body;
 
       try {
         const query = { telegram_ID };
-        const updateFields = { $inc: { balance: balanceIncrement, available_energy: -available_energy_decrement } };
+        const updateFields = {};
 
-        const result = await allUsersCollection.updateOne(query, updateFields);
+        if (balanceIncrement)
+          updateFields.balance = balanceIncrement;
+        if (available_energy_decrement)
+          updateFields.available_energy = -available_energy_decrement;
+        if (spinIncrement)
+          updateFields.spin = spinIncrement;
+        if (checkInIncrement)
+          updateFields.check_In = checkInIncrement;
+
+        const update = { $inc: updateFields };
+
+        const result = await allUsersCollection.updateOne(query, update);
 
         if (result.modifiedCount > 0) {
           const updatedUser = await allUsersCollection.findOne(query);
           io.emit("userUpdate", updatedUser); // Emit real-time update to clients
           res.send({ message: "User data updated successfully." });
         } else {
-          res.status(404).send({ message: "User not found or no changes made." });
+          res
+            .status(404)
+            .send({ message: "User not found or no changes made." });
         }
       } catch (error) {
         console.error("Error updating user data:", error);
-        res.status(500).send({ message: "Failed to update user", error: error.message });
+        res
+          .status(500)
+          .send({ message: "Failed to update user", error: error.message });
       }
     });
-
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
