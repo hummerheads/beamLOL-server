@@ -58,6 +58,19 @@ async function run() {
           telegram_ID,
           ton_address,
           createdAt: new Date(),
+          balance: 0,
+          perk: 0,
+          level: 1,
+          bonus: 0,
+          spin: 0,
+          available_energy: 100,
+          spent_telegramStars: 0,
+          spent_Ton: 0,
+          spent_pi: 0,
+          total_energy: 100,
+          check_In: 0,
+          premium: "no",
+
         };
 
         // Insert the new user into the collection
