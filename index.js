@@ -69,6 +69,7 @@ async function run() {
           balance: 0,
           perk: 0,
           level: 1,
+          tap_power: 1,
           bonus: 0,
           spin: 0,
           available_energy: 100,
