@@ -27,7 +27,9 @@ async function run() {
     console.log("Connected to MongoDB!");
 
     const allUsersCollection = client.db("BeamLOL").collection("Users");
-    const transactionsCollection = client.db("BeamLOL").collection("Transactions");
+    const transactionsCollection = client
+      .db("BeamLOL")
+      .collection("Transactions");
 
     // Root route
     app.get("/", (req, res) => {
@@ -38,6 +40,35 @@ async function run() {
     app.get("/allusers", async (req, res) => {
       const result = await allUsersCollection.find().toArray();
       res.send(result);
+    });
+
+    // Add this inside the `run` function, after defining `allUsersCollection`
+    app.post("/allusers", async (req, res) => {
+      const { telegram_ID, ton_address } = req.body;
+
+      try {
+        // Check if the user already exists
+        const existingUser = await allUsersCollection.findOne({ telegram_ID });
+        if (existingUser) {
+          return res.status(400).json({ message: "User already exists" });
+        }
+
+        // Create a new user document
+        const newUser = {
+          telegram_ID,
+          ton_address,
+          createdAt: new Date(),
+        };
+
+        // Insert the new user into the collection
+        const result = await allUsersCollection.insertOne(newUser);
+        res.status(201).json(result);
+      } catch (error) {
+        console.error("Error adding new user:", error);
+        res
+          .status(500)
+          .json({ message: "Failed to add user", error: error.message });
+      }
     });
 
     // Get a user by Telegram ID
@@ -97,7 +128,10 @@ async function run() {
 
         // Update last check-in timestamp if check-in is performed
         if (isCheckIn) {
-          updateFields.$set = { ...updateFields.$set, lastCheckIn: new Date().getTime() };
+          updateFields.$set = {
+            ...updateFields.$set,
+            lastCheckIn: new Date().getTime(),
+          };
         }
 
         const result = await allUsersCollection.updateOne(query, updateFields);
@@ -105,11 +139,15 @@ async function run() {
         if (result.modifiedCount > 0) {
           res.send({ message: "User data updated successfully." });
         } else {
-          res.status(404).send({ message: "User not found or no changes made." });
+          res
+            .status(404)
+            .send({ message: "User not found or no changes made." });
         }
       } catch (error) {
         console.error("Error updating user data:", error);
-        res.status(500).send({ message: "Failed to update user", error: error.message });
+        res
+          .status(500)
+          .send({ message: "Failed to update user", error: error.message });
       }
     });
 
