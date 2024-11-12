@@ -2,13 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { MongoClient, ServerApiVersion } = require("mongodb");
-const http = require("http");
-const { Server } = require("socket.io");
 
 dotenv.config();
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
@@ -21,14 +17,6 @@ const client = new MongoClient(uri, {
     strict: true,
     deprecationErrors: true,
   },
-});
-
-io.on("connection", (socket) => {
-  console.log("New client connected:", socket.id);
-
-  socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
-  });
 });
 
 async function run() {
@@ -126,8 +114,6 @@ async function run() {
         const result = await allUsersCollection.updateOne(query, update);
 
         if (result.modifiedCount > 0) {
-          const updatedUser = await allUsersCollection.findOne(query);
-          io.emit("userUpdate", updatedUser); // Emit real-time update to clients
           res.send({ message: "User data updated successfully." });
         } else {
           res
@@ -147,7 +133,7 @@ async function run() {
 }
 
 // Start the server
-server.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
