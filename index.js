@@ -154,50 +154,53 @@ async function run() {
       }
     });
 
-    // 🔄 Purchase Booster
-    app.patch("/purchase-booster/:telegram_ID", async (req, res) => {
-      const { telegram_ID } = req.params;
-      const { energy, price, tap } = req.body;
+// 🔄 Purchase Booster
+app.patch("/purchase-booster/:telegram_ID", async (req, res) => {
+  const { telegram_ID } = req.params;
+  const { energy, price, tap } = req.body;
 
-      try {
-        const user = await allUsersCollection.findOne({ telegram_ID });
-        if (!user) {
-          return res.status(404).send({ message: "User not found" });
-        }
-
-        if (user.balance < price) {
-          return res.status(400).send({ message: "Insufficient balance" });
-        }
-
-        // Update user's available_energy, total_energy, tap_power, and balance
-        const update = {
-          $set: {
-            available_energy: energy,
-            total_energy: energy,
-            tap_power: tap,
-          },
-          $inc: {
-            balance: -price,
-          },
-        };
-
-        const result = await allUsersCollection.updateOne(
-          { telegram_ID },
-          update
-        );
-
-        if (result.modifiedCount > 0) {
-          res.send({ message: "Booster purchased successfully" });
-        } else {
-          res.status(500).send({ message: "Failed to update user data" });
-        }
-      } catch (error) {
-        console.error("Error purchasing booster:", error);
-        res
-          .status(500)
-          .send({ message: "Error purchasing booster", error: error.message });
-      }
+  // Validate request body
+  if (!energy || !price || !tap) {
+    return res.status(400).send({
+      message: "Invalid request. Please provide 'energy', 'price', and 'tap' values.",
     });
+  }
+
+  try {
+    const user = await allUsersCollection.findOne({ telegram_ID });
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    if (user.balance < price) {
+      return res.status(400).send({ message: "Insufficient balance" });
+    }
+
+    // Update user's available_energy, total_energy, tap_power, and balance
+    const update = {
+      $set: {
+        available_energy: energy,
+        total_energy: energy,
+        tap_power: tap,
+      },
+      $inc: {
+        balance: -price,
+      },
+    };
+
+    const result = await allUsersCollection.updateOne({ telegram_ID }, update);
+
+    if (result.modifiedCount > 0) {
+      res.status(200).send({ message: "Booster purchased successfully" });
+    } else {
+      res.status(500).send({ message: "Failed to update user data" });
+    }
+  } catch (error) {
+    console.error("Error purchasing booster:", error);
+    res.status(500).send({ message: "Error purchasing booster", error: error.message });
+  }
+});
+
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
