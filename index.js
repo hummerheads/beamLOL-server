@@ -155,51 +155,117 @@ async function run() {
       }
     });
 
-// 🔄 Purchase Booster
-app.patch("/purchase-booster/:telegram_ID", async (req, res) => {
-  const { telegram_ID } = req.params;
-  const { energy, price, tap } = req.body;
+    // 🔄 Purchase Booster
+    app.patch("/purchase-booster/:telegram_ID", async (req, res) => {
+      const { telegram_ID } = req.params;
+      const { energy, price, tap } = req.body;
 
-  // Validate request body
-  if (!energy || !price || !tap) {
-    return res.status(400).send({
-      message: "Invalid request. Please provide 'energy', 'price', and 'tap' values.",
+      // Validate request body
+      if (!energy || !price || !tap) {
+        return res.status(400).send({
+          message:
+            "Invalid request. Please provide 'energy', 'price', and 'tap' values.",
+        });
+      }
+
+      try {
+        const user = await allUsersCollection.findOne({ telegram_ID });
+        if (!user) {
+          return res.status(404).send({ message: "User not found" });
+        }
+
+        if (user.balance < price) {
+          return res.status(400).send({ message: "Insufficient balance" });
+        }
+
+        // Update user's available_energy, total_energy, tap_power, and balance
+        const update = {
+          $inc: {
+            balance: -price,
+            available_energy: energy,
+            total_energy: energy,
+            tap_power: tap,
+          },
+        };
+
+        const result = await allUsersCollection.updateOne(
+          { telegram_ID },
+          update
+        );
+
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Booster purchased successfully" });
+        } else {
+          res.status(500).send({ message: "Failed to update user data" });
+        }
+      } catch (error) {
+        console.error("Error purchasing booster:", error);
+        res
+          .status(500)
+          .send({ message: "Error purchasing booster", error: error.message });
+      }
     });
-  }
 
-  try {
-    const user = await allUsersCollection.findOne({ telegram_ID });
-    if (!user) {
-      return res.status(404).send({ message: "User not found" });
-    }
+    // New route for processing premium payment
+    app.patch("/premium/:telegram_ID", async (req, res) => {
+      const { telegram_ID } = req.params;
+      const { increment_balance, increment_spin } = req.body;
 
-    if (user.balance < price) {
-      return res.status(400).send({ message: "Insufficient balance" });
-    }
+      // Validate the request body
+      if (!increment_balance || !increment_spin) {
+        return res.status(400).send({
+          message:
+            "Invalid request. Please provide 'energy', 'price', and 'tap' values.",
+        });
+      }
 
-    // Update user's available_energy, total_energy, tap_power, and balance
-    const update = {
+      try {
+        // Find the user by telegram_ID
+        const user = await allUsersCollection.findOne({ telegram_ID });
+        if (!user) {
+          return res.status(404).send({ message: "User not found" });
+        }
 
-      $inc: {
-        balance: -price,
-        available_energy:  energy,
-        total_energy: energy,
-        tap_power: tap,
-      },
-    };
+        // Check if the user has enough balance
+        if (user.balance < price) {
+          return res.status(400).send({ message: "Insufficient balance" });
+        }
 
-    const result = await allUsersCollection.updateOne({ telegram_ID }, update);
+        // Update user's available energy, total energy, tap power, balance, and premium status
+        const update = {
+          $inc: {
+            balance: increment_balance, // Add 10,000,000 to balance
+            spin: increment_spin, // Add 1,000 spins
+          },
+          $set: {
+            premium: "true", // Mark the user as premium
+          },
+        };
 
-    if (result.modifiedCount > 0) {
-      res.status(200).send({ message: "Booster purchased successfully" });
-    } else {
-      res.status(500).send({ message: "Failed to update user data" });
-    }
-  } catch (error) {
-    console.error("Error purchasing booster:", error);
-    res.status(500).send({ message: "Error purchasing booster", error: error.message });
-  }
-});
+        const result = await allUsersCollection.updateOne(
+          { telegram_ID },
+          update
+        );
+
+        if (result.modifiedCount > 0) {
+          res
+            .status(200)
+            .send({ message: "Premium features unlocked successfully!" });
+        } else {
+          res.status(500).send({ message: "Failed to update user data" });
+        }
+      } catch (error) {
+        console.error("Error processing premium payment:", error);
+        res
+          .status(500)
+          .send({
+            message: "Error processing premium payment",
+            error: error.message,
+          });
+      }
+    });
+
+
 
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
