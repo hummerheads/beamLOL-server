@@ -179,13 +179,12 @@ app.patch("/purchase-booster/:telegram_ID", async (req, res) => {
 
     // Update user's available_energy, total_energy, tap_power, and balance
     const update = {
-      $set: {
-        available_energy: available_energy + energy,
-        total_energy: total_energy + energy,
-        tap_power: tap_power + tap,
-      },
+
       $inc: {
         balance: -price,
+        available_energy:  energy,
+        total_energy: energy,
+        tap_power: tap,
       },
     };
 
