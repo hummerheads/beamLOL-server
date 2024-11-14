@@ -1,3 +1,4 @@
+//index.js backend
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -179,9 +180,9 @@ app.patch("/purchase-booster/:telegram_ID", async (req, res) => {
     // Update user's available_energy, total_energy, tap_power, and balance
     const update = {
       $set: {
-        available_energy: energy,
-        total_energy: energy,
-        tap_power: tap,
+        available_energy: available_energy + energy,
+        total_energy: total_energy + energy,
+        tap_power: tap_power + tap,
       },
       $inc: {
         balance: -price,
