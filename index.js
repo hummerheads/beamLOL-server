@@ -71,7 +71,7 @@ async function run() {
           createdAt: new Date(),
           balance: 0,
           perk: 0,
-          level: 1,
+          level: 0,
           tap_power: 1,
           bonus: 0,
           spin: 0,
@@ -81,7 +81,7 @@ async function run() {
           spent_pi: 0,
           total_energy: 100,
           check_In: 0,
-          premium: "no",
+          premium: false,
         };
 
         const result = await allUsersCollection.insertOne(newUser);
