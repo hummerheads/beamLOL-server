@@ -226,11 +226,6 @@ async function run() {
           return res.status(404).send({ message: "User not found" });
         }
 
-        // Check if the user has enough balance
-        if (user.balance < price) {
-          return res.status(400).send({ message: "Insufficient balance" });
-        }
-
         // Update user's available energy, total energy, tap power, balance, and premium status
         const update = {
           $inc: {
