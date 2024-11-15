@@ -50,73 +50,80 @@ async function run() {
         }
       } catch (error) {
         console.error("Error fetching user:", error);
-        res.status(500).send({ message: "Failed to fetch user", error: error.message });
+        res
+          .status(500)
+          .send({ message: "Failed to fetch user", error: error.message });
       }
     });
 
-// Function to generate a unique referral code
-function generateReferralCode() {
-  return Math.random().toString(36).substring(2, 10); // Generates a random string
-}
-
-  // Add new user
-  app.post("/allusers", async (req, res) => {
-    const { telegram_ID, ton_address, referralCode } = req.body;
-    try {
-      const existingUser = await allUsersCollection.findOne({ telegram_ID });
-      if (existingUser) {
-        return res.status(400).json({ message: "User already exists" });
-      }
-
-      let referredBy = null;
-      if (referralCode) {
-        const referrer = await allUsersCollection.findOne({ referralCode });
-        if (referrer) {
-          referredBy = referrer.telegram_ID;
-          await allUsersCollection.updateOne(
-            { telegram_ID: referrer.telegram_ID },
-            { $inc: { perk: 1 } }
-          );
-        } else {
-          console.warn("Invalid referral code provided:", referralCode);
-          return res.status(400).json({ message: "Invalid referral code" });
-        }
-      }
-
-      const userReferralCode = generateReferralCode();
-      const referralLink = `https://t.me/Dhinchakbot_bot?start=referral_${userReferralCode}`;
-
-      const newUser = {
-        telegram_ID,
-        ton_address,
-        referralCode: userReferralCode,
-        referredBy,
-        referralLink,
-        createdAt: new Date(),
-        balance: 0,
-        perk: 0,
-        level: 0,
-        tap_power: 1,
-        bonus: 0,
-        spin: 0,
-        available_energy: 100,
-        spent_telegramStars: 0,
-        spent_Ton: 0,
-        spent_pi: 0,
-        total_energy: 100,
-        check_In: 0,
-        premium: false,
-      };
-
-      const result = await allUsersCollection.insertOne(newUser);
-      res.status(201).json(result);
-    } catch (error) {
-      console.error("Error adding new user:", error);
-      res.status(500).json({ message: "Failed to add user", error: error.message });
+    // Function to generate a unique referral code
+    function generateReferralCode() {
+      return Math.random().toString(36).substring(2, 10); // Generates a random string
     }
-  });
 
+    // Add new user
+    app.post("/allusers", async (req, res) => {
+      const { telegram_ID, ton_address, referralCode } = req.body;
+      try {
+        const existingUser = await allUsersCollection.findOne({ telegram_ID });
+        if (existingUser) {
+          return res.status(400).json({ message: "User already exists" });
+        }
 
+        let referredBy = null;
+        if (referralCode) {
+          const referrer = await allUsersCollection.findOne({ referralCode });
+          if (referrer) {
+            referredBy = referrer.telegram_ID;
+            await allUsersCollection.updateOne(
+              { telegram_ID: referrer.telegram_ID },
+              {
+                $inc: {
+                  balance: 100000,
+                  spin: 100,
+                },
+              }
+            );
+          } else {
+            console.warn("Invalid referral code provided:", referralCode);
+            return res.status(400).json({ message: "Invalid referral code" });
+          }
+        }
+
+        const userReferralCode = generateReferralCode();
+        const referralLink = `https://t.me/Dhinchakbot_bot?start=referral_${userReferralCode}`;
+
+        const newUser = {
+          telegram_ID,
+          ton_address,
+          referralCode: userReferralCode,
+          referredBy,
+          referralLink,
+          createdAt: new Date(),
+          balance: 0,
+          perk: 0,
+          level: 0,
+          tap_power: 1,
+          bonus: 0,
+          spin: 0,
+          available_energy: 100,
+          spent_telegramStars: 0,
+          spent_Ton: 0,
+          spent_pi: 0,
+          total_energy: 100,
+          check_In: 0,
+          premium: false,
+        };
+
+        const result = await allUsersCollection.insertOne(newUser);
+        res.status(201).json(result);
+      } catch (error) {
+        console.error("Error adding new user:", error);
+        res
+          .status(500)
+          .json({ message: "Failed to add user", error: error.message });
+      }
+    });
 
     // Update user with tap action
     app.patch("/allusers/:telegram_ID", async (req, res) => {
@@ -145,11 +152,15 @@ function generateReferralCode() {
         if (result.modifiedCount > 0) {
           res.send({ message: "User data updated successfully." });
         } else {
-          res.status(404).send({ message: "User not found or no changes made." });
+          res
+            .status(404)
+            .send({ message: "User not found or no changes made." });
         }
       } catch (error) {
         console.error("Error updating user data:", error);
-        res.status(500).send({ message: "Failed to update user", error: error.message });
+        res
+          .status(500)
+          .send({ message: "Failed to update user", error: error.message });
       }
     });
 
@@ -169,7 +180,9 @@ function generateReferralCode() {
         res.send({ message: "Energy reset successfully." });
       } catch (error) {
         console.error("Error resetting energy:", error);
-        res.status(500).send({ message: "Failed to reset energy", error: error.message });
+        res
+          .status(500)
+          .send({ message: "Failed to reset energy", error: error.message });
       }
     });
 
@@ -180,7 +193,8 @@ function generateReferralCode() {
 
       if (!energy || !price || !tap) {
         return res.status(400).send({
-          message: "Invalid request. Please provide 'energy', 'price', and 'tap' values.",
+          message:
+            "Invalid request. Please provide 'energy', 'price', and 'tap' values.",
         });
       }
 
@@ -215,7 +229,9 @@ function generateReferralCode() {
         }
       } catch (error) {
         console.error("Error purchasing booster:", error);
-        res.status(500).send({ message: "Error purchasing booster", error: error.message });
+        res
+          .status(500)
+          .send({ message: "Error purchasing booster", error: error.message });
       }
     });
 
@@ -226,7 +242,8 @@ function generateReferralCode() {
 
       if (!increment_balance || !increment_spin) {
         return res.status(400).send({
-          message: "Invalid request. Please provide 'increment_balance' and 'increment_spin' values.",
+          message:
+            "Invalid request. Please provide 'increment_balance' and 'increment_spin' values.",
         });
       }
 
@@ -252,16 +269,22 @@ function generateReferralCode() {
         );
 
         if (result.modifiedCount > 0) {
-          res.status(200).send({ message: "Premium features unlocked successfully!" });
+          res
+            .status(200)
+            .send({ message: "Premium features unlocked successfully!" });
         } else {
           res.status(500).send({ message: "Failed to update user data" });
         }
       } catch (error) {
         console.error("Error processing premium payment:", error);
-        res.status(500).send({ message: "Error processing premium payment", error: error.message });
+        res
+          .status(500)
+          .send({
+            message: "Error processing premium payment",
+            error: error.message,
+          });
       }
     });
-
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
