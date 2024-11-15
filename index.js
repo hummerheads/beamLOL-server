@@ -286,7 +286,7 @@ async function run() {
       }
     });
 
-    app.patch("/api/update-user", async (req, res) => {
+    app.patch("/allusers", async (req, res) => {
       const { telegram_ID, balanceIncrement = 0, perkIncrement = 0, spinIncrement = 0 } = req.body;
     
       try {
