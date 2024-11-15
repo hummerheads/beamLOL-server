@@ -285,6 +285,33 @@ async function run() {
           });
       }
     });
+
+    app.patch("/api/update-user", async (req, res) => {
+      const { telegram_ID, balanceIncrement = 0, perkIncrement = 0, spinIncrement = 0 } = req.body;
+    
+      try {
+        const update = {
+          $inc: {
+            balance: balanceIncrement,
+            perk: perkIncrement,
+            spin: spinIncrement,
+          },
+        };
+    
+        const result = await allUsersCollection.updateOne({ telegram_ID }, update);
+    
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "User data updated successfully" });
+        } else {
+          res.status(404).send({ message: "User not found" });
+        }
+      } catch (error) {
+        console.error("Error updating user data:", error);
+        res.status(500).send({ message: "Failed to update user data" });
+      }
+    });
+
+
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
