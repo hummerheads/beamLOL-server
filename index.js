@@ -1,8 +1,8 @@
-//index.js backend
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const { Telegraf } = require("telegraf");
 
 dotenv.config();
 const app = express();
@@ -22,12 +22,12 @@ async function run() {
     console.log("Connected to MongoDB!");
     const allUsersCollection = client.db("BeamLOL").collection("Users");
 
-    // 🏠 Root route
+    // Root route
     app.get("/", (req, res) => {
       res.send("Welcome to the BeamLOL API!");
     });
 
-    // 📋 Get all users
+    // Get all users
     app.get("/allusers", async (req, res) => {
       try {
         const users = await allUsersCollection.find().toArray();
@@ -38,7 +38,7 @@ async function run() {
       }
     });
 
-    // 🔍 Get user by telegram_ID
+    // Get user by telegram_ID
     app.get("/allusers/:telegram_ID", async (req, res) => {
       const { telegram_ID } = req.params;
       try {
@@ -50,47 +50,40 @@ async function run() {
         }
       } catch (error) {
         console.error("Error fetching user:", error);
-        res
-          .status(500)
-          .send({ message: "Failed to fetch user", error: error.message });
+        res.status(500).send({ message: "Failed to fetch user", error: error.message });
       }
     });
 
-    // ➕ Add new user (with referral link generation)
+    // Add new user (with referral link generation)
     app.post("/allusers", async (req, res) => {
-      const { telegram_ID, ton_address, referralCode } = req.body; // Add referralCode in the request body
+      const { telegram_ID, ton_address, referralCode } = req.body;
       try {
-        // Check if user already exists
         const existingUser = await allUsersCollection.findOne({ telegram_ID });
         if (existingUser) {
           return res.status(400).json({ message: "User already exists" });
         }
 
-        // Check if referralCode is provided and validate it
         let referredBy = null;
         if (referralCode) {
           const referrer = await allUsersCollection.findOne({ telegram_ID: referralCode });
           if (referrer) {
-            referredBy = referrer.telegram_ID; // Store the referrer's telegram_ID
-            // Update the referrer with new user information
+            referredBy = referrer.telegram_ID;
             await allUsersCollection.updateOne(
               { telegram_ID: referrer.telegram_ID },
-              { $inc: { perk: 1 } } // Increment perk or any other property based on your logic
+              { $inc: { perk: 1 } }
             );
           } else {
             return res.status(400).json({ message: "Invalid referral code" });
           }
         }
 
-        // Generate referral link for the new user
         const referralLink = `https://t.me/Dhinchakbot_bot/signup?referral=${telegram_ID}`;
 
-        // Create a new user with the optional referredBy property
         const newUser = {
           telegram_ID,
           ton_address,
-          referredBy,  // This stores the ID of the user who referred the new user
-          referralLink, // This is the generated referral link
+          referredBy,
+          referralLink,
           createdAt: new Date(),
           balance: 0,
           perk: 0,
@@ -115,7 +108,7 @@ async function run() {
       }
     });
 
-    // 🔄 Update user with tap action
+    // Update user with tap action
     app.patch("/allusers/:telegram_ID", async (req, res) => {
       const { telegram_ID } = req.params;
       const {
@@ -142,19 +135,15 @@ async function run() {
         if (result.modifiedCount > 0) {
           res.send({ message: "User data updated successfully." });
         } else {
-          res
-            .status(404)
-            .send({ message: "User not found or no changes made." });
+          res.status(404).send({ message: "User not found or no changes made." });
         }
       } catch (error) {
         console.error("Error updating user data:", error);
-        res
-          .status(500)
-          .send({ message: "Failed to update user", error: error.message });
+        res.status(500).send({ message: "Failed to update user", error: error.message });
       }
     });
 
-    // 🔄 Reset available energy to total_energy
+    // Reset available energy to total_energy
     app.patch("/reset-energy/:telegram_ID", async (req, res) => {
       const { telegram_ID } = req.params;
       try {
@@ -170,22 +159,18 @@ async function run() {
         res.send({ message: "Energy reset successfully." });
       } catch (error) {
         console.error("Error resetting energy:", error);
-        res
-          .status(500)
-          .send({ message: "Failed to reset energy", error: error.message });
+        res.status(500).send({ message: "Failed to reset energy", error: error.message });
       }
     });
 
-    // 🔄 Purchase Booster
+    // Purchase Booster
     app.patch("/purchase-booster/:telegram_ID", async (req, res) => {
       const { telegram_ID } = req.params;
       const { energy, price, tap } = req.body;
 
-      // Validate request body
       if (!energy || !price || !tap) {
         return res.status(400).send({
-          message:
-            "Invalid request. Please provide 'energy', 'price', and 'tap' values.",
+          message: "Invalid request. Please provide 'energy', 'price', and 'tap' values.",
         });
       }
 
@@ -199,7 +184,6 @@ async function run() {
           return res.status(400).send({ message: "Insufficient balance" });
         }
 
-        // Update user's available_energy, total_energy, tap_power, and balance
         const update = {
           $inc: {
             balance: -price,
@@ -221,40 +205,34 @@ async function run() {
         }
       } catch (error) {
         console.error("Error purchasing booster:", error);
-        res
-          .status(500)
-          .send({ message: "Error purchasing booster", error: error.message });
+        res.status(500).send({ message: "Error purchasing booster", error: error.message });
       }
     });
 
-    // New route for processing premium payment
+    // Process premium payment
     app.patch("/premium/:telegram_ID", async (req, res) => {
       const { telegram_ID } = req.params;
       const { increment_balance, increment_spin } = req.body;
 
-      // Validate the request body
       if (!increment_balance || !increment_spin) {
         return res.status(400).send({
-          message:
-            "Invalid request. Please provide 'energy', 'price', and 'tap' values.",
+          message: "Invalid request. Please provide 'increment_balance' and 'increment_spin' values.",
         });
       }
 
       try {
-        // Find the user by telegram_ID
         const user = await allUsersCollection.findOne({ telegram_ID });
         if (!user) {
           return res.status(404).send({ message: "User not found" });
         }
 
-        // Update user's available energy, total energy, tap power, balance, and premium status
         const update = {
           $inc: {
-            balance: increment_balance, // Add 10,000,000 to balance
-            spin: increment_spin, // Add 1,000 spins
+            balance: increment_balance,
+            spin: increment_spin,
           },
           $set: {
-            premium: "true", // Mark the user as premium
+            premium: true,
           },
         };
 
@@ -264,31 +242,21 @@ async function run() {
         );
 
         if (result.modifiedCount > 0) {
-          res
-            .status(200)
-            .send({ message: "Premium features unlocked successfully!" });
+          res.status(200).send({ message: "Premium features unlocked successfully!" });
         } else {
           res.status(500).send({ message: "Failed to update user data" });
         }
       } catch (error) {
         console.error("Error processing premium payment:", error);
-        res
-          .status(500)
-          .send({
-            message: "Error processing premium payment",
-            error: error.message,
-          });
+        res.status(500).send({ message: "Error processing premium payment", error: error.message });
       }
     });
-
-
 
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
 }
 
-// 🚀 Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
