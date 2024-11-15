@@ -53,59 +53,66 @@ async function run() {
       }
     });
 
-    // Add new user (with referral link generation)
-    app.post("/allusers", async (req, res) => {
-      const { telegram_ID, ton_address, referralCode } = req.body;
-      try {
-        const existingUser = await allUsersCollection.findOne({ telegram_ID });
-        if (existingUser) {
-          return res.status(400).json({ message: "User already exists" });
-        }
+// Function to generate a unique referral code
+function generateReferralCode() {
+  return Math.random().toString(36).substring(2, 10); // Generates a random string
+}
 
-        let referredBy = null;
-        if (referralCode) {
-          const referrer = await allUsersCollection.findOne({ telegram_ID: referralCode });
-          if (referrer) {
-            referredBy = referrer.telegram_ID;
-            await allUsersCollection.updateOne(
-              { telegram_ID: referrer.telegram_ID },
-              { $inc: { perk: 1 } }
-            );
-          } else {
-            return res.status(400).json({ message: "Invalid referral code" });
-          }
-        }
+app.post("/allusers", async (req, res) => {
+  const { telegram_ID, ton_address, referralCode } = req.body;
+  try {
+    const existingUser = await allUsersCollection.findOne({ telegram_ID });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
 
-        const referralLink = `https://t.me/Dhinchakbot_bot/signup?referral=${telegram_ID}`;
-
-        const newUser = {
-          telegram_ID,
-          ton_address,
-          referredBy,
-          referralLink,
-          createdAt: new Date(),
-          balance: 0,
-          perk: 0,
-          level: 0,
-          tap_power: 1,
-          bonus: 0,
-          spin: 0,
-          available_energy: 100,
-          spent_telegramStars: 0,
-          spent_Ton: 0,
-          spent_pi: 0,
-          total_energy: 100,
-          check_In: 0,
-          premium: false,
-        };
-
-        const result = await allUsersCollection.insertOne(newUser);
-        res.status(201).json(result);
-      } catch (error) {
-        console.error("Error adding new user:", error);
-        res.status(500).json({ message: "Failed to add user", error: error.message });
+    let referredBy = null;
+    if (referralCode) {
+      const referrer = await allUsersCollection.findOne({ referralCode });
+      if (referrer) {
+        referredBy = referrer.telegram_ID;
+        await allUsersCollection.updateOne(
+          { telegram_ID: referrer.telegram_ID },
+          { $inc: { perk: 1 } }
+        );
+      } else {
+        return res.status(400).json({ message: "Invalid referral code" });
       }
-    });
+    }
+
+    const userReferralCode = generateReferralCode(); // Generate a unique referral code
+    const referralLink = `https://t.me/Dhinchakbot_bot/signup?referral=${userReferralCode}`;
+
+    const newUser = {
+      telegram_ID,
+      ton_address,
+      referralCode: userReferralCode, // Store the referral code
+      referredBy,
+      referralLink, // Store the referral link
+      createdAt: new Date(),
+      balance: 0,
+      perk: 0,
+      level: 0,
+      tap_power: 1,
+      bonus: 0,
+      spin: 0,
+      available_energy: 100,
+      spent_telegramStars: 0,
+      spent_Ton: 0,
+      spent_pi: 0,
+      total_energy: 100,
+      check_In: 0,
+      premium: false,
+    };
+
+    const result = await allUsersCollection.insertOne(newUser);
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Error adding new user:", error);
+    res.status(500).json({ message: "Failed to add user", error: error.message });
+  }
+});
+
 
     // Update user with tap action
     app.patch("/allusers/:telegram_ID", async (req, res) => {
