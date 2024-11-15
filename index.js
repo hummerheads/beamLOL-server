@@ -1,3 +1,4 @@
+//index.js
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -77,7 +78,7 @@ app.post("/allusers", async (req, res) => {
         );
       } else {
         console.warn("Invalid referral code provided:", referralCode);
-        // Optionally, send a response indicating the referral code was invalid
+        return res.status(400).json({ message: "Invalid referral code" });
       }
     }
 
