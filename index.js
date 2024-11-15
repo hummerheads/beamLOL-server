@@ -140,6 +140,7 @@ async function run() {
         increment_spin = 0,
         isCheckIn = false,
         resetEnergy = false,
+        spinDecrement = 0
       } = req.body;
 
       try {
@@ -154,6 +155,8 @@ async function run() {
         if (balanceIncrement) updateFields.balance = balanceIncrement;
         if (perkIncrement) updateFields.perk = perkIncrement;
         if (spinIncrement) updateFields.spin = spinIncrement;
+        if (spinDecrement) updateFields.spin = -spinDecrement;
+
 
         // Handle energy and booster purchase
         if (energy) {
