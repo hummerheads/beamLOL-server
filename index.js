@@ -83,7 +83,7 @@ async function run() {
         }
 
         // Generate referral link for the new user
-        const referralLink = `https://astounding-licorice-1ef290.netlify.app/signup?referral=${telegram_ID}`;
+        const referralLink = `https://t.me/Dhinchakbot_bot/signup?referral=${telegram_ID}`;
 
         // Create a new user with the optional referredBy property
         const newUser = {
