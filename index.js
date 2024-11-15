@@ -56,18 +56,41 @@ async function run() {
       }
     });
 
-    // ➕ Add new user
+    // ➕ Add new user (with referral link generation)
     app.post("/allusers", async (req, res) => {
-      const { telegram_ID, ton_address } = req.body;
+      const { telegram_ID, ton_address, referralCode } = req.body; // Add referralCode in the request body
       try {
+        // Check if user already exists
         const existingUser = await allUsersCollection.findOne({ telegram_ID });
         if (existingUser) {
           return res.status(400).json({ message: "User already exists" });
         }
 
+        // Check if referralCode is provided and validate it
+        let referredBy = null;
+        if (referralCode) {
+          const referrer = await allUsersCollection.findOne({ telegram_ID: referralCode });
+          if (referrer) {
+            referredBy = referrer.telegram_ID; // Store the referrer's telegram_ID
+            // Update the referrer with new user information
+            await allUsersCollection.updateOne(
+              { telegram_ID: referrer.telegram_ID },
+              { $inc: { perk: 1 } } // Increment perk or any other property based on your logic
+            );
+          } else {
+            return res.status(400).json({ message: "Invalid referral code" });
+          }
+        }
+
+        // Generate referral link for the new user
+        const referralLink = `https://astounding-licorice-1ef290.netlify.app/signup?referral=${telegram_ID}`;
+
+        // Create a new user with the optional referredBy property
         const newUser = {
           telegram_ID,
           ton_address,
+          referredBy,  // This stores the ID of the user who referred the new user
+          referralLink, // This is the generated referral link
           createdAt: new Date(),
           balance: 0,
           perk: 0,
@@ -88,9 +111,7 @@ async function run() {
         res.status(201).json(result);
       } catch (error) {
         console.error("Error adding new user:", error);
-        res
-          .status(500)
-          .json({ message: "Failed to add user", error: error.message });
+        res.status(500).json({ message: "Failed to add user", error: error.message });
       }
     });
 
