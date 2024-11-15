@@ -76,19 +76,20 @@ app.post("/allusers", async (req, res) => {
           { $inc: { perk: 1 } }
         );
       } else {
-        return res.status(400).json({ message: "Invalid referral code" });
+        console.warn("Invalid referral code provided:", referralCode);
+        // Optionally, send a response indicating the referral code was invalid
       }
     }
 
-    const userReferralCode = generateReferralCode(); // Generate a unique referral code
+    const userReferralCode = generateReferralCode();
     const referralLink = `https://t.me/Dhinchakbot_bot/signup?referral=${userReferralCode}`;
 
     const newUser = {
       telegram_ID,
       ton_address,
-      referralCode: userReferralCode, // Store the referral code
+      referralCode: userReferralCode,
       referredBy,
-      referralLink, // Store the referral link
+      referralLink,
       createdAt: new Date(),
       balance: 0,
       perk: 0,
@@ -112,6 +113,7 @@ app.post("/allusers", async (req, res) => {
     res.status(500).json({ message: "Failed to add user", error: error.message });
   }
 });
+
 
 
     // Update user with tap action
