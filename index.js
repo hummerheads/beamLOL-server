@@ -126,41 +126,87 @@ async function run() {
     });
 
     // Update user with tap action
+    // Updated route to handle multiple patch actions
     app.patch("/allusers/:telegram_ID", async (req, res) => {
       const { telegram_ID } = req.params;
       const {
         balanceIncrement = 0,
-        available_energy_decrement = 0,
+        perkIncrement = 0,
         spinIncrement = 0,
-        checkInIncrement = 0,
+        energy = 0,
+        price = 0,
+        tap = 0,
+        increment_balance = 0,
+        increment_spin = 0,
         isCheckIn = false,
+        resetEnergy = false,
       } = req.body;
 
       try {
-        const query = { telegram_ID };
+        const user = await allUsersCollection.findOne({ telegram_ID });
+        if (!user) {
+          return res.status(404).send({ message: "User not found" });
+        }
+
         const updateFields = {};
 
+        // Handle balance, perk, and spin increments
         if (balanceIncrement) updateFields.balance = balanceIncrement;
-        if (available_energy_decrement)
-          updateFields.available_energy = -available_energy_decrement;
+        if (perkIncrement) updateFields.perk = perkIncrement;
         if (spinIncrement) updateFields.spin = spinIncrement;
-        if (checkInIncrement) updateFields.check_In = checkInIncrement;
+
+        // Handle energy and booster purchase
+        if (energy) {
+          if (user.balance < price) {
+            return res
+              .status(400)
+              .send({ message: "Insufficient balance for booster" });
+          }
+          updateFields.available_energy = energy;
+          updateFields.total_energy = energy;
+          updateFields.tap_power = tap;
+          updateFields.balance = -price; // Deduct balance for booster
+        }
+
+        // Handle premium update
+        if (increment_balance && increment_spin) {
+          updateFields.balance = increment_balance;
+          updateFields.spin = increment_spin;
+          updateFields.premium = true;
+        }
+
+        // Handle Check-In increment
+        if (isCheckIn) {
+          updateFields.check_In = user.check_In + 1;
+        }
+
+        // Handle energy reset
+        if (resetEnergy) {
+          updateFields.available_energy = user.total_energy;
+        }
 
         const update = { $inc: updateFields };
-        const result = await allUsersCollection.updateOne(query, update);
+
+        const result = await allUsersCollection.updateOne(
+          { telegram_ID },
+          update
+        );
 
         if (result.modifiedCount > 0) {
-          res.send({ message: "User data updated successfully." });
+          res.status(200).send({ message: "User data updated successfully" });
         } else {
           res
             .status(404)
-            .send({ message: "User not found or no changes made." });
+            .send({ message: "No changes made or user not found" });
         }
       } catch (error) {
         console.error("Error updating user data:", error);
         res
           .status(500)
-          .send({ message: "Failed to update user", error: error.message });
+          .send({
+            message: "Failed to update user data",
+            error: error.message,
+          });
       }
     });
 
@@ -277,41 +323,12 @@ async function run() {
         }
       } catch (error) {
         console.error("Error processing premium payment:", error);
-        res
-          .status(500)
-          .send({
-            message: "Error processing premium payment",
-            error: error.message,
-          });
+        res.status(500).send({
+          message: "Error processing premium payment",
+          error: error.message,
+        });
       }
     });
-
-    app.patch("/allusers", async (req, res) => {
-      const { telegram_ID, balanceIncrement = 0, perkIncrement = 0, spinIncrement = 0 } = req.body;
-    
-      try {
-        const update = {
-          $inc: {
-            balance: balanceIncrement,
-            perk: perkIncrement,
-            spin: spinIncrement,
-          },
-        };
-    
-        const result = await allUsersCollection.updateOne({ telegram_ID }, update);
-    
-        if (result.modifiedCount > 0) {
-          res.status(200).send({ message: "User data updated successfully" });
-        } else {
-          res.status(404).send({ message: "User not found" });
-        }
-      } catch (error) {
-        console.error("Error updating user data:", error);
-        res.status(500).send({ message: "Failed to update user data" });
-      }
-    });
-
-
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
   }
