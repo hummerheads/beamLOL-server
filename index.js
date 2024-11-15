@@ -83,7 +83,7 @@ app.post("/allusers", async (req, res) => {
     }
 
     const userReferralCode = generateReferralCode();
-    const referralLink = `https://t.me/Dhinchakbot_bot/signup?referral=${userReferralCode}`;
+    const referralLink = `https://t.me/Dhinchakbot_bot?start=referral_${userReferralCode}`;
 
     const newUser = {
       telegram_ID,
