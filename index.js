@@ -137,7 +137,7 @@ async function run() {
         }
 
         const userReferralCode = generateReferralCode();
-        const referralLink = `https://t.me/Dhinchakbot_bot?start=referral_${userReferralCode}`;
+        const referralLink = `https://t.me/beamlol_coin_bot?start=referral_${userReferralCode}`;
 
         const newUser = {
           telegram_ID,
