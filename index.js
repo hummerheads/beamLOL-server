@@ -154,6 +154,7 @@ async function run() {
       const { telegram_ID } = req.params;
       const {
         balanceIncrement = 0,
+        available_energy_decrement = 0, // Add this to handle energy decrement
         perkIncrement = 0,
         spinIncrement = 0,
         energy = 0,
@@ -165,21 +166,26 @@ async function run() {
         resetEnergy = false,
         spinDecrement = 0,
       } = req.body;
-
+    
       try {
         const user = await allUsersCollection.findOne({ telegram_ID });
         if (!user) {
           return res.status(404).send({ message: "User not found" });
         }
-
+    
         const updateFields = {};
-
+    
         // Handle balance, perk, and spin increments
         if (balanceIncrement) updateFields.balance = balanceIncrement;
         if (perkIncrement) updateFields.perk = perkIncrement;
         if (spinIncrement) updateFields.spin = spinIncrement;
         if (spinDecrement) updateFields.spin = -spinDecrement;
-
+    
+        // Decrement available energy
+        if (available_energy_decrement) {
+          updateFields.available_energy = -available_energy_decrement;
+        }
+    
         // Handle energy and booster purchase
         if (energy) {
           if (user.balance < price) {
@@ -192,31 +198,31 @@ async function run() {
           updateFields.tap_power = tap;
           updateFields.balance = -price; // Deduct balance for booster
         }
-
+    
         // Handle premium update
         if (increment_balance && increment_spin) {
           updateFields.balance = increment_balance;
           updateFields.spin = increment_spin;
           updateFields.premium = true;
         }
-
+    
         // Handle Check-In increment
         if (isCheckIn) {
           updateFields.check_In = user.check_In + 1;
         }
-
+    
         // Handle energy reset
         if (resetEnergy) {
           updateFields.available_energy = user.total_energy;
         }
-
+    
         const update = { $inc: updateFields };
-
+    
         const result = await allUsersCollection.updateOne(
           { telegram_ID },
           update
         );
-
+    
         if (result.modifiedCount > 0) {
           res.status(200).send({ message: "User data updated successfully" });
         } else {
@@ -232,6 +238,7 @@ async function run() {
         });
       }
     });
+    
 
     // Add a new PI transaction
     app.post("/piTransactions", async (req, res) => {
