@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const cron = require("node-cron");
 
 dotenv.config();
 const app = express();
@@ -39,6 +40,25 @@ async function run() {
         console.error("Error fetching all users:", error);
         res.status(500).send({ message: "Failed to fetch users" });
       }
+    });
+
+    // Function to reset available energy for all users
+    async function resetEnergyForAllUsers() {
+      try {
+        const updateResult = await allUsersCollection.updateMany(
+          {},
+          { $set: { available_energy: total_energy } }
+        );
+        console.log(`Reset energy for ${updateResult.modifiedCount} users.`);
+      } catch (error) {
+        console.error("Error resetting energy for users:", error);
+      }
+    }
+
+    // Schedule the task to run every hour
+    cron.schedule("0 * * * *", async () => {
+      console.log("Running scheduled task to reset energy...");
+      await resetEnergyForAllUsers();
     });
 
     // Get user by telegram_ID
