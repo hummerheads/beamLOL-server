@@ -21,8 +21,9 @@ async function run() {
     await client.connect();
     console.log("Connected to MongoDB!");
     const allUsersCollection = client.db("BeamLOL").collection("Users");
-    const piTransactionsCollection = client.db("BeamLOL").collection("piTransactions");
-
+    const piTransactionsCollection = client
+      .db("BeamLOL")
+      .collection("piTransactions");
 
     // Root route
     app.get("/", (req, res) => {
@@ -142,7 +143,7 @@ async function run() {
         increment_spin = 0,
         isCheckIn = false,
         resetEnergy = false,
-        spinDecrement = 0
+        spinDecrement = 0,
       } = req.body;
 
       try {
@@ -158,7 +159,6 @@ async function run() {
         if (perkIncrement) updateFields.perk = perkIncrement;
         if (spinIncrement) updateFields.spin = spinIncrement;
         if (spinDecrement) updateFields.spin = -spinDecrement;
-
 
         // Handle energy and booster purchase
         if (energy) {
@@ -206,43 +206,42 @@ async function run() {
         }
       } catch (error) {
         console.error("Error updating user data:", error);
-        res
-          .status(500)
-          .send({
-            message: "Failed to update user data",
-            error: error.message,
-          });
+        res.status(500).send({
+          message: "Failed to update user data",
+          error: error.message,
+        });
       }
     });
 
-      // Add a new PI transaction
-      app.post("/piTransactions", async (req, res) => {
-        const { telegram_ID, transactionHash, price_PI, spins } = req.body;
-        if (!telegram_ID || !transactionHash || !price_PI || !spins) {
-          return res.status(400).send({
-            message: "Invalid request. Please provide all required fields.",
-          });
-        }
-  
-        try {
-          const newTransaction = {
-            telegram_ID,
-            transactionHash,
-            price_PI,
-            spins,
-            createdAt: new Date(),
-          };
-  
-          const result = await piTransactionsCollection.insertOne(newTransaction);
-          res.status(201).json({ message: "Transaction recorded successfully!" });
-        } catch (error) {
-          console.error("Error recording transaction:", error);
-          res.status(500).send({
-            message: "Failed to record transaction",
-            error: error.message,
-          });
-        }
-      });
+    // Add a new PI transaction
+    app.post("/piTransactions", async (req, res) => {
+      const { telegram_ID, transactionHash, price_PI, spins } = req.body;
+      if (!telegram_ID || !transactionHash || !price_PI || !spins) {
+        return res.status(400).send({
+          message: "Invalid request. Please provide all required fields.",
+        });
+      }
+
+      try {
+        const newTransaction = {
+          telegram_ID,
+          transactionHash,
+          price_PI,
+          spins,
+          state: "pending",
+          createdAt: new Date(),
+        };
+
+        const result = await piTransactionsCollection.insertOne(newTransaction);
+        res.status(201).json({ message: "Transaction recorded successfully!" });
+      } catch (error) {
+        console.error("Error recording transaction:", error);
+        res.status(500).send({
+          message: "Failed to record transaction",
+          error: error.message,
+        });
+      }
+    });
 
     // Reset available energy to total_energy
     app.patch("/reset-energy/:telegram_ID", async (req, res) => {
@@ -361,6 +360,36 @@ async function run() {
           message: "Error processing premium payment",
           error: error.message,
         });
+      }
+    });
+
+    app.post("/allusers/update/:telegram_ID", async (req, res) => {
+      const { telegram_ID } = req.params;
+      const { level, perk, total_energy } = req.body;
+
+      try {
+        const user = await allUsersCollection.findOne({ telegram_ID });
+        if (!user) {
+          return res.status(404).send({ message: "User not found" });
+        }
+
+        const update = {
+          $set: { level, perk, total_energy },
+        };
+
+        const result = await allUsersCollection.updateOne(
+          { telegram_ID },
+          update
+        );
+
+        if (result.modifiedCount > 0) {
+          res.status(200).json({ message: "User updated successfully" });
+        } else {
+          res.status(400).send({ message: "Failed to update user" });
+        }
+      } catch (error) {
+        console.error("Error updating user:", error);
+        res.status(500).send({ message: "Internal server error" });
       }
     });
   } catch (error) {
