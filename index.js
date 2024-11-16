@@ -45,18 +45,23 @@ async function run() {
     // Function to reset available energy for all users
     async function resetEnergyForAllUsers() {
       try {
-        const updateResult = await allUsersCollection.updateMany(
-          {},
-          { $set: { available_energy: total_energy } }
-        );
-        console.log(`Reset energy for ${updateResult.modifiedCount} users.`);
+        const users = await allUsersCollection.find().toArray();
+        for (const user of users) {
+          const totalEnergy = user.total_energy || 100;  // Use user's total_energy or fallback to 100 if not set
+          const updateResult = await allUsersCollection.updateOne(
+            { telegram_ID: user.telegram_ID },
+            { $set: { available_energy: totalEnergy } }
+          );
+          console.log(`Reset energy for ${updateResult.modifiedCount} users.`);
+        }
       } catch (error) {
         console.error("Error resetting energy for users:", error);
       }
     }
+    
 
     // Schedule the task to run every hour
-    cron.schedule("*/5 * * * *", async () => {
+    cron.schedule("*/1 * * * *", async () => {
       console.log("Running scheduled task to reset energy...");
       await resetEnergyForAllUsers();
     });
