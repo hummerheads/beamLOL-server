@@ -47,7 +47,7 @@ async function run() {
       try {
         const users = await allUsersCollection.find().toArray();
         for (const user of users) {
-          const totalEnergy = user.total_energy || 100;  // Use user's total_energy or fallback to 100 if not set
+          const totalEnergy = user.total_energy || 100; // Use user's total_energy or fallback to 100 if not set
           const updateResult = await allUsersCollection.updateOne(
             { telegram_ID: user.telegram_ID },
             { $set: { available_energy: totalEnergy } }
@@ -58,12 +58,30 @@ async function run() {
         console.error("Error resetting energy for users:", error);
       }
     }
-    
 
     // Schedule the task to run every hour
-    cron.schedule("*/1 * * * *", async () => {
+    cron.schedule("0 * * * *", async () => {
       console.log("Running scheduled task to reset energy...");
       await resetEnergyForAllUsers();
+    });
+
+    // Increment spin count for all users every 24 hours
+    cron.schedule("0 0 * * *", async () => {
+      console.log("Running scheduled task to increment spins...");
+      try {
+        const users = await allUsersCollection.find().toArray();
+        for (const user of users) {
+          const updateResult = await allUsersCollection.updateOne(
+            { telegram_ID: user.telegram_ID },
+            { $inc: { spin: 5 } }
+          );
+          if (updateResult.modifiedCount > 0) {
+            console.log(`Incremented spin for user ${user.telegram_ID}`);
+          }
+        }
+      } catch (error) {
+        console.error("Error incrementing spins for users:", error);
+      }
     });
 
     // Get user by telegram_ID
@@ -171,26 +189,26 @@ async function run() {
         resetEnergy = false,
         spinDecrement = 0,
       } = req.body;
-    
+
       try {
         const user = await allUsersCollection.findOne({ telegram_ID });
         if (!user) {
           return res.status(404).send({ message: "User not found" });
         }
-    
+
         const updateFields = {};
-    
+
         // Handle balance, perk, and spin increments
         if (balanceIncrement) updateFields.balance = balanceIncrement;
         if (perkIncrement) updateFields.perk = perkIncrement;
         if (spinIncrement) updateFields.spin = spinIncrement;
         if (spinDecrement) updateFields.spin = -spinDecrement;
-    
+
         // Decrement available energy
         if (available_energy_decrement) {
           updateFields.available_energy = -available_energy_decrement;
         }
-    
+
         // Handle energy and booster purchase
         if (energy) {
           if (user.balance < price) {
@@ -203,31 +221,31 @@ async function run() {
           updateFields.tap_power = tap;
           updateFields.balance = -price; // Deduct balance for booster
         }
-    
+
         // Handle premium update
         if (increment_balance && increment_spin) {
           updateFields.balance = increment_balance;
           updateFields.spin = increment_spin;
           updateFields.premium = true;
         }
-    
+
         // Handle Check-In increment
         if (isCheckIn) {
           updateFields.check_In = user.check_In + 1;
         }
-    
+
         // Handle energy reset
         if (resetEnergy) {
           updateFields.available_energy = user.total_energy;
         }
-    
+
         const update = { $inc: updateFields };
-    
+
         const result = await allUsersCollection.updateOne(
           { telegram_ID },
           update
         );
-    
+
         if (result.modifiedCount > 0) {
           res.status(200).send({ message: "User data updated successfully" });
         } else {
@@ -243,7 +261,6 @@ async function run() {
         });
       }
     });
-    
 
     // Add a new PI transaction
     app.post("/piTransactions", async (req, res) => {
