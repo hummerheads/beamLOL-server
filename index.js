@@ -21,6 +21,8 @@ async function run() {
     await client.connect();
     console.log("Connected to MongoDB!");
     const allUsersCollection = client.db("BeamLOL").collection("Users");
+    const piTransactionsCollection = client.db("BeamLOL").collection("piTransactions");
+
 
     // Root route
     app.get("/", (req, res) => {
@@ -212,6 +214,35 @@ async function run() {
           });
       }
     });
+
+      // Add a new PI transaction
+      app.post("/piTransactions", async (req, res) => {
+        const { telegram_ID, transactionHash, price_PI, spins } = req.body;
+        if (!telegram_ID || !transactionHash || !price_PI || !spins) {
+          return res.status(400).send({
+            message: "Invalid request. Please provide all required fields.",
+          });
+        }
+  
+        try {
+          const newTransaction = {
+            telegram_ID,
+            transactionHash,
+            price_PI,
+            spins,
+            createdAt: new Date(),
+          };
+  
+          const result = await piTransactionsCollection.insertOne(newTransaction);
+          res.status(201).json({ message: "Transaction recorded successfully!" });
+        } catch (error) {
+          console.error("Error recording transaction:", error);
+          res.status(500).send({
+            message: "Failed to record transaction",
+            error: error.message,
+          });
+        }
+      });
 
     // Reset available energy to total_energy
     app.patch("/reset-energy/:telegram_ID", async (req, res) => {
