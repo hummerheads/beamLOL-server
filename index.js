@@ -56,7 +56,7 @@ async function run() {
     }
 
     // Schedule the task to run every hour
-    cron.schedule("0 * * * *", async () => {
+    cron.schedule("*/5 * * * *", async () => {
       console.log("Running scheduled task to reset energy...");
       await resetEnergyForAllUsers();
     });
